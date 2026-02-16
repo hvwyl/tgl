@@ -1,0 +1,1 @@
+glad --out-path ./glad --api "gl:core=3.3" --reproducible

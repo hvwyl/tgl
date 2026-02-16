@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RectanizerSkyline Demo</title>
+</head>
+
+<body>
+    <canvas id="canvas" style="border: #808080 1px solid;"></canvas>
+    <div>RectanizerSkyline <span id="width"></span>x<span id="height"></span></div>
+    <div id="occupancy"></div>
+    <script>
+        var globalWidth = 512;
+        var globalHeight = 512;
+
+        document.getElementById('width').innerHTML = globalWidth;
+        document.getElementById('height').innerHTML = globalHeight;
+        var canvas = document.getElementById('canvas');
+        canvas.width = globalWidth;
+        canvas.height = globalHeight;
+        var ctx = canvas.getContext('2d');
+
+        var rects = [];
+        // rect: [x, y, w, h]
+        var skyline = [];
+        // skylineNode: [fx, fy, width]
+        skyline.push({ fx: 0, fy: 0, fwidth: globalWidth });
+        var fAreaSoFar = 0;
+
+        function addRect(width, height) {
+            if (width > globalWidth || height > globalHeight) {
+                return false;
+            }
+            // find position for new rectangle
+            var bestWidth = globalWidth + 1;
+            var bestX = 0;
+            var bestY = globalHeight + 1;
+            var bestIndex = -1;
+
+            for (let i = 0; i < skyline.length; i++) {
+                let y = rectangleFits(i, width, height);
+                if (y != null) {
+                    if (y < bestY || (y == bestY && skyline[i].fwidth < bestWidth)) {
+                        bestIndex = i;
+                        bestWidth = skyline[i].fwidth;
+                        bestX = skyline[i].fx;
+                        bestY = y;
+                    }
+                }
+            }
+
+            if (-1 != bestIndex) {
+                addSkylineLevel(bestIndex, bestX, bestY, width, height);
+                rects.push([bestX, bestY, width, height]);
+                fAreaSoFar += width * height;
+                return true;
+            }
+        }
+
+        function rectangleFits(skylineIndex, width, height) {
+            let x = skyline[skylineIndex].fx;
+            if (x + width > globalWidth) {
+                return null;
+            }
+            let widthLeft = width;
+            let i = skylineIndex;
+            let y = skyline[skylineIndex].fy;
+            while (widthLeft > 0) {
+                y = Math.max(y, skyline[i].fy);
+                if (y + height > globalHeight) {
+                    return null;
+                }
+                widthLeft -= skyline[i].fwidth;
+                ++i;
+            }
+            return y;
+        }
+
+        function addSkylineLevel(skylineIndex, x, y, width, height) {
+            let newSegment = {};
+            newSegment.fx = x;
+            newSegment.fy = y + height;
+            newSegment.fwidth = width;
+            skyline.splice(skylineIndex, 0, newSegment);
+
+            // delete width of the new skyline segment from following ones
+            for (let i = skylineIndex + 1; i < skyline.length; ++i) {
+
+                if (skyline[i].fx < skyline[i - 1].fx + skyline[i - 1].fwidth) {
+                    let shrink = skyline[i - 1].fx + skyline[i - 1].fwidth - skyline[i].fx;
+
+                    skyline[i].fx += shrink;
+                    skyline[i].fwidth -= shrink;
+
+                    if (skyline[i].fwidth <= 0) {
+                        // fully consumed
+                        skyline.splice(i, 1);
+                        --i;
+                    } else {
+                        // only partially consumed
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            // merge skylines
+            for (let i = 0; i < skyline.length - 1; ++i) {
+                if (skyline[i].fy == skyline[i + 1].fy) {
+                    skyline[i].fwidth += skyline[i + 1].fwidth;
+                    skyline.splice(i + 1, 1);
+                    --i;
+                }
+            }
+        }
+
+        // testbench
+        for (let i = 0; i < 400; i++) {
+            addRect(Math.floor(Math.random() * 100), Math.floor(Math.random() * 100));
+        }
+
+        function drawRects() {
+            for (const r of rects) {
+                const colors = [
+                    '#FFFF00', '#00FFFF', '#FF00FF',
+                    '#C0C0C0', '#808080', '#800000',
+                    '#008000', '#000080', '#800080',
+                    '#808000', '#008080', '#800080',
+                    '#C0C0C0', '#808080', '#800000',
+                ];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.fillRect(r[0], r[1], r[2], r[3]);
+            }
+            console.log(rects);
+        }
+        function drawSkyline() {
+            ctx.strokeStyle = '#FF0000';
+            ctx.beginPath();
+            for (const s of skyline) {
+                ctx.lineTo(s.fx, s.fy);
+                ctx.lineTo(s.fx + s.fwidth, s.fy);
+            }
+            ctx.stroke();
+            console.log(skyline);
+        }
+        drawRects();
+        drawSkyline();
+        document.getElementById('occupancy').innerHTML = `occupancy: ${fAreaSoFar / (globalWidth * globalHeight) * 100}%`;
+    </script>
+</body>
+
+</html>
