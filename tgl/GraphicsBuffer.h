@@ -27,12 +27,8 @@ public:
     GraphicsBuffer();
     ~GraphicsBuffer();
     inline void bindVAO() const { glBindVertexArray(m_vao); }
-    void sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index);
-    void clear();
-
-    // Vertices & Indices
-    std::vector<Vertex> verts;
-    std::vector<GLuint> indices;
+    void sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index,
+              std::vector<Vertex> &verts, std::vector<GLuint> &indices);
 
 private:
     // VBO & IBO & VAO

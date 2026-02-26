@@ -81,6 +81,10 @@ private:
     GraphicsShader m_shader;
     GraphicsBuffer m_buffer;
 
+    // Vertices & Indices
+    std::vector<Vertex> m_verts;
+    std::vector<GLuint> m_indices;
+
     // Param
     enum DrawType : uint32_t
     {

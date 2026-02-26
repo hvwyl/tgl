@@ -16,7 +16,8 @@ GraphicsBuffer::~GraphicsBuffer()
     glDeleteVertexArrays(1, &m_vao);
 }
 
-void GraphicsBuffer::sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index)
+void GraphicsBuffer::sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index,
+                          std::vector<Vertex> &verts, std::vector<GLuint> &indices)
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     size_t currentVboSize = verts.size() * sizeof(Vertex);
@@ -58,17 +59,4 @@ void GraphicsBuffer::sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index)
     {
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, currentIboSize, indices.data());
     }
-}
-
-void GraphicsBuffer::clear()
-{
-    if (verts.size() < verts.capacity() / 4)
-        decltype(verts){}.swap(verts);
-    else
-        verts.clear();
-
-    if (indices.size() < indices.capacity() / 4)
-        decltype(indices){}.swap(indices);
-    else
-        indices.clear();
 }

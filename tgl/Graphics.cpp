@@ -392,7 +392,17 @@ void Graphics::beginFrame()
     call.indiceCount = 0;
     decltype(m_calls){}.swap(m_calls);
     m_currentCall = &m_calls.emplace_back(call);
-    m_buffer.clear();
+
+    // Clear buffers
+    if (m_verts.size() < m_verts.capacity() / 4)
+        decltype(m_verts){}.swap(m_verts);
+    else
+        m_verts.clear();
+
+    if (m_indices.size() < m_indices.capacity() / 4)
+        decltype(m_indices){}.swap(m_indices);
+    else
+        m_indices.clear();
 }
 
 void Graphics::flushFrame()
@@ -404,7 +414,7 @@ void Graphics::flushFrame()
             m_fontState.atlas->syncTexture();
 
         // Upload vertices
-        m_buffer.sync(m_shader.locs.a_pos, m_shader.locs.a_uv0, m_shader.locs.a_uv1);
+        m_buffer.sync(m_shader.locs.a_pos, m_shader.locs.a_uv0, m_shader.locs.a_uv1, m_verts, m_indices);
 
         // Render
         m_shader.bind();
@@ -481,7 +491,7 @@ void Graphics::switchToNewActiveCall()
         Call call;
         call.state = m_currentCall->state;
         call.param = m_currentCall->param;
-        call.indiceOffset = reinterpret_cast<void *>(m_buffer.indices.size() * sizeof(GLuint));
+        call.indiceOffset = reinterpret_cast<void *>(m_indices.size() * sizeof(GLuint));
         call.indiceCount = 0;
         m_currentCall = &m_calls.emplace_back(call);
     }
@@ -498,13 +508,13 @@ void Graphics::switchToNewDrawTypeCall(DrawType drawType, bool extraCheck)
 
 void Graphics::buildBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
 {
-    const size_t base = m_buffer.verts.size();
-    m_buffer.verts.insert(m_buffer.verts.end(),
-                          {{Point{posb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{uv1b.minx, uv1b.miny}},
-                           {Point{posb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{uv1b.minx, uv1b.maxy}},
-                           {Point{posb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{uv1b.maxx, uv1b.maxy}},
-                           {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{uv1b.maxx, uv1b.miny}}});
-    m_buffer.indices.insert(m_buffer.indices.end(), {base + 0, base + 1, base + 2, base + 0, base + 2, base + 3});
+    const size_t base = m_verts.size();
+    m_verts.insert(m_verts.end(),
+                   {{Point{posb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{uv1b.minx, uv1b.miny}},
+                    {Point{posb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{uv1b.minx, uv1b.maxy}},
+                    {Point{posb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{uv1b.maxx, uv1b.maxy}},
+                    {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{uv1b.maxx, uv1b.miny}}});
+    m_indices.insert(m_indices.end(), {base + 0, base + 1, base + 2, base + 0, base + 2, base + 3});
     m_currentCall->indiceCount += 6;
 }
 
