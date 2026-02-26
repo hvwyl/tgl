@@ -436,7 +436,7 @@ void Graphics::flushFrame()
             {
             case FILL_COLOR:
             {
-                // fillColorPassP
+                // fillColorPass
                 glUniform4f(m_shader.locs.u_color,
                             call.state.color.r, call.state.color.g,
                             call.state.color.b, call.state.color.a);
