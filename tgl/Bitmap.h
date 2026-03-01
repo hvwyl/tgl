@@ -53,6 +53,12 @@ public:
     inline uint32_t getHeight() const { return m_height; }
     inline uint32_t getWidth() const { return m_width; }
 
+    // Copying and move semantics
+    Bitmap(const Bitmap &other) = delete;
+    Bitmap &operator=(const Bitmap &other) = delete;
+    Bitmap(Bitmap &&other) noexcept;
+    Bitmap &operator=(Bitmap &&other) noexcept;
+
 private:
     uint32_t m_width, m_height;
     size_t m_bytesPerPixel, m_rowBytes, m_bufferSize;
