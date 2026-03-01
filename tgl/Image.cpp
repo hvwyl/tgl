@@ -50,7 +50,6 @@ Image::Clip Image::crop(float sx, float sy, float sWidth, float sHeight) const
 
 struct BMPFileHeader
 {
-    uint16_t bfType;
     uint32_t bfSize;
     uint16_t bfReserved1;
     uint16_t bfReserved2;
@@ -76,12 +75,14 @@ struct BMPInfoHeader
 
 Image Image::fromBMPFile(std::unique_ptr<std::istream> file)
 {
-    BMPFileHeader file_header;
-    file->read(reinterpret_cast<char *>(&file_header), sizeof(BMPFileHeader));
-    if (file_header.bfType != 0x4D42)
-        throw std::runtime_error("BMP error: Not a valid BMP file");
+    uint16_t sig;
+    file->read(reinterpret_cast<char *>(&sig), sizeof(uint16_t));
+    if (file->gcount() != 2 || sig != 0x4D42)
+        throw std::runtime_error("Not a valid BMP file!");
 
+    BMPFileHeader file_header;
     BMPInfoHeader info_header;
+    file->read(reinterpret_cast<char *>(&file_header), sizeof(BMPFileHeader));
     file->read(reinterpret_cast<char *>(&info_header), sizeof(BMPInfoHeader));
     if (info_header.biCompression != 0 || (info_header.biBitCount != 24 && info_header.biBitCount != 32))
         throw std::runtime_error("BMP error: Unsupport format");
