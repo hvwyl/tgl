@@ -29,6 +29,8 @@ Image::Image(size_t width, size_t height, uint16_t layout, uint16_t flags)
 Image::Image(const Bitmap &bitmap, uint16_t layout, uint16_t flags)
     : m_layout(layout), m_flags(flags)
 {
+    if (!bitmap.isValid())
+        return;
     m_texture = std::make_shared<Texture>(bitmap.getWidth(), bitmap.getHeight(), layoutToFormat(layout), 0, bitmap.bufferPointer());
 }
 

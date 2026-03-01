@@ -52,6 +52,7 @@ public:
     // Getters
     inline uint32_t getHeight() const { return m_height; }
     inline uint32_t getWidth() const { return m_width; }
+    inline bool isValid() const { return m_buffer != nullptr; }
 
     // Copying and move semantics
     Bitmap(const Bitmap &other) = delete;

@@ -173,6 +173,8 @@ void Graphics::setFillColor(const Color &color)
 
 void Graphics::setFillImage(const Image &image)
 {
+    if (!image.isValid())
+        return;
     uint32_t imageParams = (image.m_layout << 16) | image.m_flags;
     if (m_currentCall->state.fillType != FILL_IMAGE ||
         m_currentCall->state.texture != image.m_texture ||
@@ -187,7 +189,8 @@ void Graphics::setFillImage(const Image &image)
 
 void Graphics::setFillLinearGradient(const Gradient &gradient, float x0, float y0, float x1, float y1)
 {
-
+    if (!gradient.isValid())
+        return;
     if (m_currentCall->state.fillType != FILL_LINEAR_GRADIENT ||
         m_currentCall->state.texture != gradient.m_texture ||
         std::fabs(m_currentCall->state.gradientParam0[0] - x0) > FLOAT_EPSILON ||
@@ -209,6 +212,8 @@ void Graphics::setFillRadialGradient(const Gradient &gradient,
                                      float x0, float y0, float r0,
                                      float x1, float y1, float r1)
 {
+    if (!gradient.isValid())
+        return;
     if (m_currentCall->state.fillType != FILL_RADIAL_GRADIENT ||
         m_currentCall->state.texture != gradient.m_texture ||
         std::fabs(m_currentCall->state.gradientParam0[0] - x0) > FLOAT_EPSILON ||
@@ -232,6 +237,8 @@ void Graphics::setFillRadialGradient(const Gradient &gradient,
 
 void Graphics::setFillConicGradient(const Gradient &gradient, float startAngle, float x, float y)
 {
+    if (!gradient.isValid())
+        return;
     if (m_currentCall->state.fillType != FILL_CONIC_GRADIENT ||
         m_currentCall->state.texture != gradient.m_texture ||
         std::fabs(m_currentCall->state.gradientParam0[0] - x) > FLOAT_EPSILON ||

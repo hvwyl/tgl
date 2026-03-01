@@ -18,12 +18,14 @@ public:
         Color color;
         inline bool operator<(const ColorStop &other) const { return offset < other.offset; }
     };
+    Gradient() {};
 
     Gradient(std::vector<ColorStop> colorStops, size_t resolution = 256);
     ~Gradient() = default;
 
     // Getters
     inline size_t getResolution() const { return m_texture->getWidth(); }
+    inline bool isValid() const { return m_texture != nullptr && m_texture->isValid(); }
 
 private:
     std::shared_ptr<Texture> m_texture = nullptr;

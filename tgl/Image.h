@@ -44,6 +44,7 @@ public:
         FLAG_FLIP_Y = (1u << 1),
         FLAG_PREMULTIPLIED = (1u << 2),
     };
+    Image() {};
     Image(size_t width, size_t height, uint16_t layout, uint16_t flags);
     Image(const Bitmap &bitmap, uint16_t layout, uint16_t flags);
     ~Image() = default;
@@ -64,6 +65,7 @@ public:
     // Getters
     inline int getHeight() const { return m_texture->getHeight(); }
     inline int getWidth() const { return m_texture->getWidth(); }
+    inline bool isValid() const { return m_texture != nullptr && m_texture->isValid(); }
 
     // Loaders
     static Image fromBMPFile(std::unique_ptr<std::istream> file);
