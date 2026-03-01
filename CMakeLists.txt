@@ -18,7 +18,7 @@ pkg_check_modules(GLFW REQUIRED glfw3)
 pkg_check_modules(FREETYPE REQUIRED freetype2)
 pkg_check_modules(PNG REQUIRED libpng)
 pkg_check_modules(JPEG REQUIRED libjpeg)
-pkg_check_modules(JPEG REQUIRED zlib)
+pkg_check_modules(ZLIB REQUIRED zlib)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/tgl
