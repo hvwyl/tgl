@@ -8,7 +8,7 @@ constexpr float FLOAT_EPSILON = 1e-6f;
 
 Graphics::Graphics()
 {
-    if (m_shader.isCompleted() == 0)
+    if (m_shader.isValid() == 0)
     {
         std::printf("Shader compilation failed\n");
     }

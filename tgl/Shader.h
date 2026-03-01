@@ -16,7 +16,7 @@ public:
     inline GLint getAttribLocation(const char *attrib) const { return glGetAttribLocation(m_prog, attrib); }
     inline GLint getUniformLocation(const char *uniform) const { return glGetUniformLocation(m_prog, uniform); }
     inline GLuint getUniformBlockIndex(const char *uniform) const { return glGetUniformBlockIndex(m_prog, uniform); }
-    inline int isCompleted() const { return m_prog != 0; }
+    inline int isValid() const { return m_prog != 0; }
     inline GLuint getProg() const { return m_prog; }
 
 private:
