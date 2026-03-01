@@ -1,4 +1,49 @@
-#include "Image.h"
+#include "Decoder.h"
+
+#define MAX_SIG_LENGTH 8
+
+#ifdef DECODER_ENABLE_PNG_SUPPORT
+#include <png.h>
+#endif
+
+#ifdef DECODER_ENABLE_JPEG_SUPPORT
+#include <jpeglib.h>
+#endif
+
+Bitmap Decoder::decode(std::unique_ptr<std::istream> file, Decoder *decoder)
+{
+    decoder->m_flags = Image::FLAG_NONE;
+    unsigned char sig[MAX_SIG_LENGTH];
+    uint16_t &sigu16 = *reinterpret_cast<uint16_t *>(sig);
+    file->read(reinterpret_cast<char *>(&sig), sizeof(uint16_t));
+    if (file->gcount() != 2)
+        goto error;
+
+    if (sigu16 == 0x4D42)
+    {
+        return decodeBMP(std::move(file), decoder);
+    }
+#ifdef DECODER_ENABLE_JPEG_SUPPORT
+    else if (sigu16 == 0xD8FF)
+    {
+        return decodeJPEG(std::move(file), decoder);
+    }
+#endif
+
+#ifdef DECODER_ENABLE_PNG_SUPPORT
+    file->read(reinterpret_cast<char *>(&sig) + sizeof(uint16_t), MAX_SIG_LENGTH - sizeof(uint16_t));
+    if (file->gcount() != MAX_SIG_LENGTH - sizeof(uint16_t))
+        goto error;
+
+    if (png_check_sig(sig, 8))
+    {
+        return decodePNG(std::move(file), decoder);
+    }
+#endif
+
+error:
+    throw std::runtime_error("Not a valid file!");
+}
 
 #pragma pack(push, 1)
 
@@ -27,13 +72,8 @@ struct BMPInfoHeader
 
 #pragma pack(pop)
 
-Image Image::fromBMPFile(std::unique_ptr<std::istream> file)
+Bitmap Decoder::decodeBMP(std::unique_ptr<std::istream> file, Decoder *decoder)
 {
-    uint16_t sig;
-    file->read(reinterpret_cast<char *>(&sig), sizeof(uint16_t));
-    if (file->gcount() != 2 || sig != 0x4D42)
-        throw std::runtime_error("Not a valid BMP file!");
-
     BMPFileHeader file_header;
     BMPInfoHeader info_header;
     file->read(reinterpret_cast<char *>(&file_header), sizeof(BMPFileHeader));
@@ -50,19 +90,16 @@ Image Image::fromBMPFile(std::unique_ptr<std::istream> file)
     if (file->gcount() != bitmap.bufferSize())
         throw std::runtime_error("BMP error: Cannot read pixel data");
 
-    uint16_t layout = info_header.biBitCount == 24 ? LAYOUT_BGR888 : LAYOUT_BGRA8888;
-    uint16_t flags = 0;
+    decoder->m_layout = info_header.biBitCount == 24 ? Image::LAYOUT_BGR888 : Image::LAYOUT_BGRA8888;
     if (info_header.biWidth < 0)
-        flags |= FLAG_FLIP_X;
+        decoder->m_flags |= Image::FLAG_FLIP_X;
     if (info_header.biHeight > 0)
-        flags |= FLAG_FLIP_Y;
+        decoder->m_flags |= Image::FLAG_FLIP_Y;
 
-    return Image{bitmap, layout, flags};
+    return std::move(bitmap);
 }
 
-#ifdef IMAGE_ENABLE_PNG_SUPPORT
-
-#include <png.h>
+#ifdef DECODER_ENABLE_PNG_SUPPORT
 
 static void pngError(png_structp png_ptr, png_const_charp msg)
 {
@@ -82,16 +119,10 @@ static void pngRead(png_structp png_ptr, png_bytep data, png_size_t length)
     file->read(reinterpret_cast<char *>(data), static_cast<std::streamsize>(length));
 }
 
-Image Image::fromPNGFile(std::unique_ptr<std::istream> file)
+Bitmap Decoder::decodePNG(std::unique_ptr<std::istream> file, Decoder *decoder)
 {
-    unsigned char sig[8];
-    file->read(reinterpret_cast<char *>(sig), 8);
-    if (file->gcount() != 8 || !png_check_sig(sig, 8))
-        throw std::runtime_error("PNG error: Not a valid PNG file");
-
     png_structp png_ptr = nullptr;
     png_infop info_ptr = nullptr;
-
     try
     {
         png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, pngError, pngWarn);
@@ -117,23 +148,22 @@ Image Image::fromPNGFile(std::unique_ptr<std::istream> file)
         else if (bit_depth < 8)
             png_set_expand_gray_1_2_4_to_8(png_ptr);
 
-        uint16_t layout;
         switch (color_type)
         {
         case PNG_COLOR_TYPE_GRAY:
-            layout = LAYOUT_Lum8;
+            decoder->m_layout = Image::LAYOUT_Lum8;
             break;
         case PNG_COLOR_TYPE_GRAY_ALPHA:
-            layout = LAYOUT_LumAlpha88;
+            decoder->m_layout = Image::LAYOUT_LumAlpha88;
             break;
         case PNG_COLOR_TYPE_PALETTE:
             png_set_palette_to_rgb(png_ptr);
         case PNG_COLOR_TYPE_RGB:
-            layout = LAYOUT_RGB888;
+            decoder->m_layout = Image::LAYOUT_RGB888;
             break;
         case PNG_COLOR_TYPE_RGB_ALPHA:
         default:
-            layout = LAYOUT_RGBA8888;
+            decoder->m_layout = Image::LAYOUT_RGBA8888;
             break;
         }
 
@@ -144,11 +174,11 @@ Image Image::fromPNGFile(std::unique_ptr<std::istream> file)
             {
             case PNG_COLOR_TYPE_GRAY:
             case PNG_COLOR_TYPE_GRAY_ALPHA:
-                layout = LAYOUT_LumAlpha88;
+                decoder->m_layout = Image::LAYOUT_LumAlpha88;
                 break;
             case PNG_COLOR_TYPE_PALETTE:
             case PNG_COLOR_TYPE_RGB:
-                layout = LAYOUT_RGBA8888;
+                decoder->m_layout = Image::LAYOUT_RGBA8888;
                 break;
             default:
                 break;
@@ -171,7 +201,7 @@ Image Image::fromPNGFile(std::unique_ptr<std::istream> file)
 
         png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
 
-        return Image{bitmap, layout, 0};
+        return std::move(bitmap);
     }
     catch (...)
     {
@@ -182,9 +212,7 @@ Image Image::fromPNGFile(std::unique_ptr<std::istream> file)
 
 #endif
 
-#ifdef IMAGE_ENABLE_JPEG_SUPPORT
-
-#include <jpeglib.h>
+#ifdef DECODER_ENABLE_JPEG_SUPPORT
 
 static void jpegError(j_common_ptr cinfo)
 {
@@ -256,13 +284,8 @@ static void jpegIstreamTermSource(j_decompress_ptr cinfo)
 {
 }
 
-Image Image::fromJPEGFile(std::unique_ptr<std::istream> file)
+Bitmap Decoder::decodeJPEG(std::unique_ptr<std::istream> file, Decoder *decoder)
 {
-    uint16_t sig;
-    file->read(reinterpret_cast<char *>(&sig), sizeof(uint16_t));
-    if (file->gcount() != 2 || sig != 0xD8FF)
-        throw std::runtime_error("Not a valid JPEG file!");
-
     file->seekg(0, std::ios::beg);
 
     struct jpeg_decompress_struct cinfo;
@@ -298,17 +321,16 @@ Image Image::fromJPEGFile(std::unique_ptr<std::istream> file)
         size_t height = cinfo.output_height;
         int components = cinfo.output_components;
 
-        uint16_t layout;
         switch (components)
         {
         case 1:
-            layout = LAYOUT_Lum8;
+            decoder->m_layout = Image::LAYOUT_Lum8;
             break;
         case 3:
-            layout = LAYOUT_RGB888;
+            decoder->m_layout = Image::LAYOUT_RGB888;
             break;
         case 4:
-            layout = LAYOUT_RGBA8888;
+            decoder->m_layout = Image::LAYOUT_RGBA8888;
             break;
         default:
             throw std::runtime_error("Unsupported JPEG color component.");
@@ -325,7 +347,7 @@ Image Image::fromJPEGFile(std::unique_ptr<std::istream> file)
         jpeg_finish_decompress(&cinfo);
         jpeg_destroy_decompress(&cinfo);
 
-        return Image{bitmap, layout, 0};
+        return std::move(bitmap);
     }
     catch (...)
     {

@@ -8,7 +8,6 @@
 #include "Geometry.h"
 #include "Texture.h"
 #include <memory>
-#include <fstream>
 
 //
 // Image
@@ -40,6 +39,7 @@ public:
     };
     enum Flags : uint16_t
     {
+        FLAG_NONE = 0u,
         FLAG_FLIP_X = (1u << 0),
         FLAG_FLIP_Y = (1u << 1),
         FLAG_PREMULTIPLIED = (1u << 2),
@@ -66,29 +66,6 @@ public:
     inline int getHeight() const { return m_texture->getHeight(); }
     inline int getWidth() const { return m_texture->getWidth(); }
     inline bool isValid() const { return m_texture != nullptr && m_texture->isValid(); }
-
-    // Loaders
-    static Image fromBMPFile(std::unique_ptr<std::istream> file);
-    static inline Image fromBMPFile(const char *path)
-    {
-        return fromBMPFile(std::make_unique<std::ifstream>(path, std::ios::binary));
-    };
-
-#ifdef IMAGE_ENABLE_PNG_SUPPORT
-    static Image fromPNGFile(std::unique_ptr<std::istream> file);
-    static Image fromPNGFile(const char *path)
-    {
-        return fromPNGFile(std::make_unique<std::ifstream>(path, std::ios::binary));
-    };
-#endif
-
-#ifdef IMAGE_ENABLE_JPEG_SUPPORT
-    static Image fromJPEGFile(std::unique_ptr<std::istream> file);
-    static Image fromJPEGFile(const char *path)
-    {
-        return fromJPEGFile(std::make_unique<std::ifstream>(path, std::ios::binary));
-    };
-#endif
 
 private:
     std::shared_ptr<Texture> m_texture = nullptr;

@@ -1,4 +1,5 @@
 #include "GLWindow.h"
+#include "Decoder.h"
 #include "Graphics.h"
 #include <cstdio>
 
@@ -11,9 +12,11 @@ public:
     Image image;
 
     TestWindow(int width, int height, const char *title)
-        : GLWindow(width, height, title), image(Image::fromBMPFile("test.bmp"))
+        : GLWindow(width, height, title)
     {
         ctx.setResolution(width, height);
+        Decoder decoder("test.bmp");
+        image = decoder.createImage();
     }
 
     ~TestWindow() {}
