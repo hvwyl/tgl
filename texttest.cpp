@@ -38,16 +38,16 @@ protected:
             Graphics::TextMetrics metrics = ctx.measureText(mt);
             ctx.save();
             ctx.setFillColor(Color::fromRGBf(0.0f, 1.0f, 1.0f));
-            ctx.fillRect(10, 290, metrics.width, 4);
-            ctx.fillRect(10, 290 - metrics.ascent, metrics.width, 4);
-            ctx.fillRect(10, 290 + metrics.descent, metrics.width, 4);
+            ctx.drawRect(10, 290, metrics.width, 4);
+            ctx.drawRect(10, 290 - metrics.ascent, metrics.width, 4);
+            ctx.drawRect(10, 290 + metrics.descent, metrics.width, 4);
             ctx.setFontPixelSize(32);
-            ctx.fillText(10, 400, "metrics:");
-            ctx.fillText(10, 432, std::string("width:") + std::to_string(metrics.width));
-            ctx.fillText(10, 464, std::string("ascent:") + std::to_string(metrics.ascent));
-            ctx.fillText(10, 496, std::string("descent:") + std::to_string(metrics.descent));
+            ctx.drawText(10, 400, "metrics:");
+            ctx.drawText(10, 432, std::string("width:") + std::to_string(metrics.width));
+            ctx.drawText(10, 464, std::string("ascent:") + std::to_string(metrics.ascent));
+            ctx.drawText(10, 496, std::string("descent:") + std::to_string(metrics.descent));
             ctx.restore();
-            ctx.fillText(10, 296, mt);
+            ctx.drawText(10, 296, mt);
 
             ctx.flushFrame();
             swapBuffers();

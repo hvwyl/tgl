@@ -47,7 +47,7 @@ protected:
         ctx.setFillColor(Color::fromRGB(255, 255, 255));
         std::ostringstream ss;
         ss << "FPS: " << fps << "  " << "Screen: " << getWidth() << "x" << getHeight();
-        ctx.fillText(0, 32, ss.str());
+        ctx.drawText(0, 32, ss.str());
 
         rectX += rectSpeedX * deltaTime;
         rectY += rectSpeedY * deltaTime;
@@ -77,7 +77,7 @@ protected:
             rectSpeedY = -rectSpeedY;
         }
 
-        ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+        ctx.drawRect(rectX, rectY, rectWidth, rectHeight);
 
         ctx.flushFrame();
         swapBuffers();

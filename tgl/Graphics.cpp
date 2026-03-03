@@ -273,14 +273,14 @@ void Graphics::unsetScissor()
     m_currentCall->state.scissor.maxy = +std::numeric_limits<float>::infinity();
 }
 
-void Graphics::fillRect(float x, float y, float width, float height)
+void Graphics::drawRect(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
     const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
     rectBounds(posb, uv0b);
 }
 
-void Graphics::fillRect(float x, float y, float width, float height, const Image::Clip &clip)
+void Graphics::drawRect(float x, float y, float width, float height, const Image::Clip &clip)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -290,14 +290,14 @@ void Graphics::fillRect(float x, float y, float width, float height, const Image
     rectBounds(posb, clip.uv0b);
 }
 
-void Graphics::fillCircle(float x, float y, float width, float height)
+void Graphics::drawCircle(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
     const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
     circleBounds(posb, uv0b);
 }
 
-void Graphics::fillCircle(float x, float y, float width, float height, const Image::Clip &clip)
+void Graphics::drawCircle(float x, float y, float width, float height, const Image::Clip &clip)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -307,7 +307,7 @@ void Graphics::fillCircle(float x, float y, float width, float height, const Ima
     circleBounds(posb, clip.uv0b);
 }
 
-void Graphics::fillImage(float dx, float dy, float scale)
+void Graphics::drawImage(float dx, float dy, float scale)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -337,13 +337,13 @@ void Graphics::setFontPixelSize(size_t pixelSize)
     m_fontState.pixelSize = pixelSize;
 }
 
-void Graphics::fillText(float x, float y, const std::string &utf8string)
+void Graphics::drawText(float x, float y, const std::string &utf8string)
 {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return fillText(x, y, converter.from_bytes(utf8string));
+    return drawText(x, y, converter.from_bytes(utf8string));
 }
 
-void Graphics::fillText(float x, float y, const std::wstring &utf16string)
+void Graphics::drawText(float x, float y, const std::wstring &utf16string)
 {
     if (m_fontState.atlas == nullptr)
         return;
@@ -452,7 +452,7 @@ void Graphics::flushFrame()
 
             case FILL_IMAGE:
             {
-                // fillImagePass
+                // drawImagePass
                 glUniform1ui(m_shader.locs.u_imageParams, call.state.imageParams);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, call.state.texture->getTex());

@@ -51,16 +51,16 @@ public:
     void setScissor(float x, float y, float width, float height);
     void unsetScissor();
 
-    void fillRect(float x, float y, float width, float height);
-    void fillRect(float x, float y, float width, float height, const Image::Clip &clip);
-    void fillCircle(float x, float y, float width, float height);
-    void fillCircle(float x, float y, float width, float height, const Image::Clip &clip);
-    void fillImage(float dx, float dy, float scale = 1.0f);
+    void drawRect(float x, float y, float width, float height);
+    void drawRect(float x, float y, float width, float height, const Image::Clip &clip);
+    void drawCircle(float x, float y, float width, float height);
+    void drawCircle(float x, float y, float width, float height, const Image::Clip &clip);
+    void drawImage(float dx, float dy, float scale = 1.0f);
 
     void setFontFamily(const Font &font);
     void setFontPixelSize(size_t pixelSize);
-    void fillText(float x, float y, const std::string &utf8string);
-    void fillText(float x, float y, const std::wstring &utf16string);
+    void drawText(float x, float y, const std::string &utf8string);
+    void drawText(float x, float y, const std::wstring &utf16string);
 
     struct TextMetrics
     {
