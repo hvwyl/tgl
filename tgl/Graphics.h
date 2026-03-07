@@ -6,7 +6,6 @@
 #include "Image.h"
 #include "Gradient.h"
 #include "Font.h"
-#include <stack>
 
 //
 // Graphics
@@ -139,7 +138,7 @@ private:
         CallState callState;
         FontState fontState;
     };
-    std::stack<State> m_stateStack;
+    std::vector<State> m_stateStack;
 
     // Calls
     struct Call

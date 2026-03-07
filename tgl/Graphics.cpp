@@ -58,7 +58,7 @@ void Graphics::save()
 {
     if (m_fontState.atlas != nullptr)
         m_fontState.atlas->syncTexture();
-    m_stateStack.emplace(State{m_currentCall->state, m_fontState});
+    m_stateStack.push_back(State{m_currentCall->state, m_fontState});
 }
 
 void Graphics::restore()
@@ -66,10 +66,10 @@ void Graphics::restore()
     if (!m_stateStack.empty())
     {
         switchToNewActiveCall();
-        State &state = m_stateStack.top();
+        State &state = m_stateStack.back();
         m_currentCall->state = state.callState;
         m_fontState = state.fontState;
-        m_stateStack.pop();
+        m_stateStack.pop_back();
     }
 }
 
@@ -399,6 +399,10 @@ void Graphics::beginFrame()
     call.indiceCount = 0;
     decltype(m_calls){}.swap(m_calls);
     m_currentCall = &m_calls.emplace_back(call);
+
+    // Shrink state stack
+    if (m_stateStack.size() < m_stateStack.capacity() / 4)
+        m_stateStack.shrink_to_fit();
 
     // Clear buffers
     if (m_verts.size() < m_verts.capacity() / 4)
