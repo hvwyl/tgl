@@ -53,8 +53,8 @@ public:
     // Copying and move semantics
     Texture(const Texture &other) = delete;
     Texture &operator=(const Texture &other) = delete;
-    Texture(Texture &&other) noexcept;
-    Texture &operator=(Texture &&other) noexcept;
+    Texture(Texture &&other) = delete;
+    Texture &operator=(Texture &&other) = delete;
 
 private:
     GLuint m_tex;

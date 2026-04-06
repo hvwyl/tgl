@@ -19,6 +19,12 @@ public:
     inline int isValid() const { return m_prog != 0; }
     inline GLuint getProg() const { return m_prog; }
 
+    // Copying and move semantics
+    Shader(const Shader &other) = delete;
+    Shader &operator=(const Shader &other) = delete;
+    Shader(Shader &&other) = delete;
+    Shader &operator=(Shader &&other) = delete;
+
 private:
     GLuint m_prog;
 };

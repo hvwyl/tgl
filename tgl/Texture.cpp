@@ -108,31 +108,3 @@ void Texture::update(size_t x, size_t y, size_t width, size_t height, const unsi
     // Unbind texture
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-
-Texture::Texture(Texture &&other) noexcept
-    : m_tex(other.m_tex),
-      m_format(other.m_format),
-      m_width(other.m_width),
-      m_height(other.m_height),
-      m_flags(other.m_flags)
-{
-    other.m_tex = 0;
-}
-
-Texture &Texture::operator=(Texture &&other) noexcept
-{
-    if (this != &other)
-    {
-        if (m_tex != 0)
-        {
-            glDeleteTextures(1, &m_tex);
-        }
-        m_tex = other.m_tex;
-        m_format = other.m_format;
-        m_width = other.m_width;
-        m_height = other.m_height;
-        m_flags = other.m_flags;
-        other.m_tex = 0;
-    }
-    return *this;
-}
