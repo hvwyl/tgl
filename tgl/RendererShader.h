@@ -1,18 +1,18 @@
-#ifndef GRAPHICSSHADER_H
-#define GRAPHICSSHADER_H
+#ifndef RENDERERSHADER_H
+#define RENDERERSHADER_H
 
 // #define SHADER_GL_ES
 
 #include "Shader.h"
 
 //
-// GraphicsShader
+// RendererShader
 //
-class GraphicsShader : public Shader
+class RendererShader : public Shader
 {
 public:
-    GraphicsShader();
-    ~GraphicsShader() = default;
+    RendererShader();
+    ~RendererShader() = default;
 
     struct ShaderLocs
     {

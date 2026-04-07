@@ -1,5 +1,6 @@
 #include "GLWindow.h"
-#include "Graphics.h"
+#include "GraphicsRecorder.h"
+#include "GraphicsRenderer.h"
 
 #include <sstream>
 
@@ -9,7 +10,8 @@
 class TestWindow : public GLWindow
 {
 public:
-    Graphics ctx;
+    GraphicsRecorder recorder;
+    GraphicsRenderer renderer;
     double fps;
 
     float rectX = 0.0f;
@@ -23,9 +25,8 @@ public:
     TestWindow(int width, int height, const char *title)
         : GLWindow(width, height, title)
     {
-        ctx.setResolution(width, height);
-        ctx.setFontFamily(Font{FONT_NotoSerif_PATH});
-        ctx.setFontPixelSize(32);
+        recorder.setFontFamily(Font{FONT_NotoSerif_PATH});
+        recorder.setFontPixelSize(32);
         lastFrameTime = glfwGetTime();
     }
 
@@ -35,7 +36,7 @@ protected:
     void render() override
     {
         glViewport(0, 0, getWidth(), getHeight());
-        ctx.setResolution(getWidth(), getHeight());
+        renderer.setResolution(getWidth(), getHeight());
 
         double currentTime = glfwGetTime();
         double deltaTime = currentTime - lastFrameTime;
@@ -43,11 +44,11 @@ protected:
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        ctx.beginFrame();
-        ctx.setFillColor(Color::fromRGB(255, 255, 255));
+        recorder.clear();
+        recorder.setFillColor(Color::fromRGB(255, 255, 255));
         std::ostringstream ss;
         ss << "FPS: " << fps << "  " << "Screen: " << getWidth() << "x" << getHeight();
-        ctx.drawText(0, 32, ss.str());
+        recorder.drawText(0, 32, ss.str());
 
         rectX += rectSpeedX * deltaTime;
         rectY += rectSpeedY * deltaTime;
@@ -77,9 +78,10 @@ protected:
             rectSpeedY = -rectSpeedY;
         }
 
-        ctx.drawRect(rectX, rectY, rectWidth, rectHeight);
+        recorder.drawRect(rectX, rectY, rectWidth, rectHeight);
 
-        ctx.flushFrame();
+        renderer.commit(recorder);
+        renderer.render();
         swapBuffers();
         fps = calculateFPS();
     }

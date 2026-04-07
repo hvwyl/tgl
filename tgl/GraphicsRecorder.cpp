@@ -1,18 +1,12 @@
-#include "Graphics.h"
+#include "GraphicsRecorder.h"
 #include "FontAtlas.h"
 #include <locale>
 #include <codecvt>
-#include <cstdio>
 
 constexpr float FLOAT_EPSILON = 1e-6f;
 
-Graphics::Graphics()
+GraphicsRecorder::GraphicsRecorder()
 {
-    if (m_shader.isValid() == 0)
-    {
-        std::printf("Shader compilation failed\n");
-    }
-
     // Initialize Calls
     Call call;
     // blend: source-over
@@ -33,35 +27,42 @@ Graphics::Graphics()
     call.indiceOffset = reinterpret_cast<void *>(0);
     call.indiceCount = 0;
     m_currentCall = &m_calls.emplace_back(call);
-
-    // Initialize blend ( Alpha blend, PREMULTIPLIED Shader )
-    glEnable(GL_BLEND);
-#if 0
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-    // Initialize depth
-    glDisable(GL_DEPTH_TEST);
-    // Initialize stencil
-    glDisable(GL_STENCIL_TEST);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glStencilMask(0xFFFFFFFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-    glStencilFunc(GL_ALWAYS, 0, 0xFFFFFFFF);
-    // Initialize texture
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Graphics::save()
+void GraphicsRecorder::clear()
+{
+    Call call;
+    call.state = m_currentCall->state;
+    call.param = m_currentCall->param;
+    call.indiceOffset = reinterpret_cast<void *>(0);
+    call.indiceCount = 0;
+    decltype(m_calls){}.swap(m_calls);
+    m_currentCall = &m_calls.emplace_back(call);
+
+    // Shrink state stack
+    if (m_stateStack.size() < m_stateStack.capacity() / 4)
+        m_stateStack.shrink_to_fit();
+
+    // Clear buffers
+    if (m_verts.size() < m_verts.capacity() / 4)
+        decltype(m_verts){}.swap(m_verts);
+    else
+        m_verts.clear();
+
+    if (m_indices.size() < m_indices.capacity() / 4)
+        decltype(m_indices){}.swap(m_indices);
+    else
+        m_indices.clear();
+}
+
+void GraphicsRecorder::save()
 {
     if (m_fontState.atlas != nullptr)
         m_fontState.atlas->syncTexture();
     m_stateStack.push_back(State{m_currentCall->state, m_fontState});
 }
 
-void Graphics::restore()
+void GraphicsRecorder::restore()
 {
     if (!m_stateStack.empty())
     {
@@ -73,7 +74,7 @@ void Graphics::restore()
     }
 }
 
-void Graphics::setCompositeOperation(CompositeOperation compositeOperation)
+void GraphicsRecorder::setCompositeOperation(CompositeOperation compositeOperation)
 {
     GLenum sfactor = GL_ONE;
     GLenum dfactor = GL_ZERO;
@@ -147,7 +148,7 @@ void Graphics::setCompositeOperation(CompositeOperation compositeOperation)
     }
 }
 
-void Graphics::setCompositeGlobalAlpha(float alpha)
+void GraphicsRecorder::setCompositeGlobalAlpha(float alpha)
 {
     if (std::abs(m_currentCall->state.alpha - alpha) > FLOAT_EPSILON)
     {
@@ -156,7 +157,7 @@ void Graphics::setCompositeGlobalAlpha(float alpha)
     }
 }
 
-void Graphics::setFillColor(const Color &color)
+void GraphicsRecorder::setFillColor(const Color &color)
 {
     Color premultipliedColor = Color::premulColor(color);
     if (m_currentCall->state.fillType != FILL_COLOR ||
@@ -171,7 +172,7 @@ void Graphics::setFillColor(const Color &color)
     }
 }
 
-void Graphics::setFillImage(const Image &image)
+void GraphicsRecorder::setFillImage(const Image &image)
 {
     if (!image.isValid())
         return;
@@ -187,7 +188,7 @@ void Graphics::setFillImage(const Image &image)
     }
 }
 
-void Graphics::setFillLinearGradient(const Gradient &gradient, float x0, float y0, float x1, float y1)
+void GraphicsRecorder::setFillLinearGradient(const Gradient &gradient, float x0, float y0, float x1, float y1)
 {
     if (!gradient.isValid())
         return;
@@ -208,9 +209,9 @@ void Graphics::setFillLinearGradient(const Gradient &gradient, float x0, float y
     }
 }
 
-void Graphics::setFillRadialGradient(const Gradient &gradient,
-                                     float x0, float y0, float r0,
-                                     float x1, float y1, float r1)
+void GraphicsRecorder::setFillRadialGradient(const Gradient &gradient,
+                                             float x0, float y0, float r0,
+                                             float x1, float y1, float r1)
 {
     if (!gradient.isValid())
         return;
@@ -235,7 +236,7 @@ void Graphics::setFillRadialGradient(const Gradient &gradient,
     }
 }
 
-void Graphics::setFillConicGradient(const Gradient &gradient, float startAngle, float x, float y)
+void GraphicsRecorder::setFillConicGradient(const Gradient &gradient, float startAngle, float x, float y)
 {
     if (!gradient.isValid())
         return;
@@ -254,7 +255,7 @@ void Graphics::setFillConicGradient(const Gradient &gradient, float startAngle, 
     }
 }
 
-void Graphics::setScissor(float x, float y, float width, float height)
+void GraphicsRecorder::setScissor(float x, float y, float width, float height)
 {
 
     switchToNewActiveCall();
@@ -264,7 +265,7 @@ void Graphics::setScissor(float x, float y, float width, float height)
     m_currentCall->state.scissor.maxy = y + height;
 }
 
-void Graphics::unsetScissor()
+void GraphicsRecorder::unsetScissor()
 {
     switchToNewActiveCall();
     m_currentCall->state.scissor.minx = -std::numeric_limits<float>::infinity();
@@ -273,14 +274,14 @@ void Graphics::unsetScissor()
     m_currentCall->state.scissor.maxy = +std::numeric_limits<float>::infinity();
 }
 
-void Graphics::drawRect(float x, float y, float width, float height)
+void GraphicsRecorder::drawRect(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
     const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
     rectBounds(posb, uv0b);
 }
 
-void Graphics::drawRect(float x, float y, float width, float height, const Image::Clip &clip)
+void GraphicsRecorder::drawRect(float x, float y, float width, float height, const Image::Clip &clip)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -290,14 +291,14 @@ void Graphics::drawRect(float x, float y, float width, float height, const Image
     rectBounds(posb, clip.uv0b);
 }
 
-void Graphics::drawCircle(float x, float y, float width, float height)
+void GraphicsRecorder::drawCircle(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
     const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
     circleBounds(posb, uv0b);
 }
 
-void Graphics::drawCircle(float x, float y, float width, float height, const Image::Clip &clip)
+void GraphicsRecorder::drawCircle(float x, float y, float width, float height, const Image::Clip &clip)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -307,7 +308,7 @@ void Graphics::drawCircle(float x, float y, float width, float height, const Ima
     circleBounds(posb, clip.uv0b);
 }
 
-void Graphics::drawImage(float dx, float dy, float scale)
+void GraphicsRecorder::drawImage(float dx, float dy, float scale)
 {
     CallState &state = m_currentCall->state;
     if (state.fillType != FILL_IMAGE)
@@ -321,14 +322,14 @@ void Graphics::drawImage(float dx, float dy, float scale)
     rectBounds(posb, uv0b);
 }
 
-void Graphics::setFontFamily(const Font &font)
+void GraphicsRecorder::setFontFamily(const Font &font)
 {
     if (m_fontState.atlas != nullptr)
         m_fontState.atlas->syncTexture();
     m_fontState.atlas = font.m_atlas;
 }
 
-void Graphics::setFontPixelSize(size_t pixelSize)
+void GraphicsRecorder::setFontPixelSize(size_t pixelSize)
 {
     if (m_fontState.atlas == nullptr)
         return;
@@ -337,13 +338,13 @@ void Graphics::setFontPixelSize(size_t pixelSize)
     m_fontState.pixelSize = pixelSize;
 }
 
-void Graphics::drawText(float x, float y, const std::string &utf8string)
+void GraphicsRecorder::drawText(float x, float y, const std::string &utf8string)
 {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
     return drawText(x, y, converter.from_bytes(utf8string));
 }
 
-void Graphics::drawText(float x, float y, const std::wstring &utf16string)
+void GraphicsRecorder::drawText(float x, float y, const std::wstring &utf16string)
 {
     if (m_fontState.atlas == nullptr)
         return;
@@ -366,13 +367,13 @@ void Graphics::drawText(float x, float y, const std::wstring &utf16string)
     }
 }
 
-Graphics::TextMetrics Graphics::measureText(const std::string &utf8string)
+GraphicsRecorder::TextMetrics GraphicsRecorder::measureText(const std::string &utf8string)
 {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
     return measureText(converter.from_bytes(utf8string));
 }
 
-Graphics::TextMetrics Graphics::measureText(const std::wstring &utf16string)
+GraphicsRecorder::TextMetrics GraphicsRecorder::measureText(const std::wstring &utf16string)
 {
     if (m_fontState.atlas == nullptr)
         return TextMetrics{};
@@ -390,112 +391,7 @@ Graphics::TextMetrics Graphics::measureText(const std::wstring &utf16string)
     return TextMetrics{width, ascent, descent};
 }
 
-void Graphics::beginFrame()
-{
-    Call call;
-    call.state = m_currentCall->state;
-    call.param = m_currentCall->param;
-    call.indiceOffset = reinterpret_cast<void *>(0);
-    call.indiceCount = 0;
-    decltype(m_calls){}.swap(m_calls);
-    m_currentCall = &m_calls.emplace_back(call);
-
-    // Shrink state stack
-    if (m_stateStack.size() < m_stateStack.capacity() / 4)
-        m_stateStack.shrink_to_fit();
-
-    // Clear buffers
-    if (m_verts.size() < m_verts.capacity() / 4)
-        decltype(m_verts){}.swap(m_verts);
-    else
-        m_verts.clear();
-
-    if (m_indices.size() < m_indices.capacity() / 4)
-        decltype(m_indices){}.swap(m_indices);
-    else
-        m_indices.clear();
-}
-
-void Graphics::flushFrame()
-{
-    if (!(m_currentCall->indiceCount == 0 && m_calls.size() == 1))
-    {
-        // Upload font
-        if (m_fontState.atlas != nullptr)
-            m_fontState.atlas->syncTexture();
-
-        // Upload vertices
-        m_buffer.sync(m_shader.locs.a_pos, m_shader.locs.a_uv0, m_shader.locs.a_uv1, m_verts, m_indices);
-
-        // Render
-        m_shader.bind();
-        m_buffer.bindVAO();
-        glUniform2f(m_shader.locs.u_resolution, static_cast<float>(m_width), static_cast<float>(m_height));
-        glUniform1i(m_shader.locs.u_texture, 0);
-        glUniform1i(m_shader.locs.u_fontAtlas, 1);
-
-        for (const Call &call : m_calls)
-        {
-            glBlendFuncSeparate(call.state.sfactor, call.state.dfactor,
-                                call.state.sfactor, call.state.dfactor);
-            glUniform2ui(m_shader.locs.u_fragmentType, call.state.fillType, call.param.drawType);
-            glUniform1f(m_shader.locs.u_alpha, call.state.alpha);
-            glUniform4f(m_shader.locs.u_scissor,
-                        call.state.scissor.minx, call.state.scissor.miny,
-                        call.state.scissor.maxx, call.state.scissor.maxy);
-            switch (call.state.fillType)
-            {
-            case FILL_COLOR:
-            {
-                // fillColorPass
-                glUniform4f(m_shader.locs.u_color,
-                            call.state.color.r, call.state.color.g,
-                            call.state.color.b, call.state.color.a);
-                break;
-            }
-
-            case FILL_IMAGE:
-            {
-                // drawImagePass
-                glUniform1ui(m_shader.locs.u_imageParams, call.state.imageParams);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, call.state.texture->getTex());
-                break;
-            }
-
-            case FILL_LINEAR_GRADIENT:
-            case FILL_RADIAL_GRADIENT:
-            case FILL_CONIC_GRADIENT:
-            {
-                // fillGradientPass
-                glUniform3f(m_shader.locs.u_gradientParam0,
-                            call.state.gradientParam0[0], call.state.gradientParam0[1], call.state.gradientParam0[2]);
-                glUniform3f(m_shader.locs.u_gradientParam1,
-                            call.state.gradientParam1[0], call.state.gradientParam1[1], call.state.gradientParam1[2]);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, call.state.texture->getTex());
-                break;
-            }
-
-            default:
-                break;
-            }
-            switch (call.param.drawType)
-            {
-            case DRAW_FONT:
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, call.param.fontAtlas->getTex());
-                break;
-
-            default:
-                break;
-            }
-            glDrawElements(GL_TRIANGLES, call.indiceCount, GL_UNSIGNED_INT, call.indiceOffset);
-        }
-    }
-}
-
-void Graphics::switchToNewActiveCall()
+void GraphicsRecorder::switchToNewActiveCall()
 {
     if (m_currentCall->indiceCount > 0)
     {
@@ -508,7 +404,7 @@ void Graphics::switchToNewActiveCall()
     }
 }
 
-void Graphics::switchToNewDrawTypeCall(DrawType drawType, bool extraCheck)
+void GraphicsRecorder::switchToNewDrawTypeCall(DrawType drawType, bool extraCheck)
 {
     if (m_currentCall->param.drawType != drawType || extraCheck)
     {
@@ -517,7 +413,7 @@ void Graphics::switchToNewDrawTypeCall(DrawType drawType, bool extraCheck)
     }
 }
 
-void Graphics::buildBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
+void GraphicsRecorder::buildBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
 {
     const size_t base = m_verts.size();
     m_verts.insert(m_verts.end(),
@@ -529,23 +425,29 @@ void Graphics::buildBounds(const Bounds &posb, const Bounds &uv0b, const Bounds 
     m_currentCall->indiceCount += 6;
 }
 
-void Graphics::rectBounds(const Bounds &posb, const Bounds &uv0b)
+void GraphicsRecorder::rectBounds(const Bounds &posb, const Bounds &uv0b)
 {
     switchToNewDrawTypeCall(DRAW_RECT);
     const Bounds uv1b{0.0f, 0.0f, 1.0f, 1.0f};
     buildBounds(posb, uv0b, uv1b);
 }
 
-void Graphics::circleBounds(const Bounds &posb, const Bounds &uv0b)
+void GraphicsRecorder::circleBounds(const Bounds &posb, const Bounds &uv0b)
 {
     switchToNewDrawTypeCall(DRAW_CIRCLE);
     const Bounds uv1b{0.0f, 0.0f, 1.0f, 1.0f};
     buildBounds(posb, uv0b, uv1b);
 }
 
-void Graphics::fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
+void GraphicsRecorder::fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
 {
-    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontAtlas != m_fontState.atlas->getTexture());
-    m_currentCall->param.fontAtlas = m_fontState.atlas->getTexture();
+    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontTexture != m_fontState.atlas->getTexture());
+    m_currentCall->param.fontTexture = m_fontState.atlas->getTexture();
     buildBounds(posb, uv0b, uv1b);
+}
+
+void GraphicsRecorder::syncFontAtlas() const
+{
+    if (m_fontState.atlas != nullptr)
+        m_fontState.atlas->syncTexture();
 }

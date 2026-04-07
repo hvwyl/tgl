@@ -1,6 +1,6 @@
-#include "GraphicsBuffer.h"
+#include "RendererBuffer.h"
 
-GraphicsBuffer::GraphicsBuffer()
+RendererBuffer::RendererBuffer()
 {
     glGenBuffers(1, &m_vbo);
     m_vboSize = 0;
@@ -9,15 +9,15 @@ GraphicsBuffer::GraphicsBuffer()
     glGenVertexArrays(1, &m_vao);
 }
 
-GraphicsBuffer::~GraphicsBuffer()
+RendererBuffer::~RendererBuffer()
 {
     glDeleteBuffers(1, &m_vbo);
     glDeleteBuffers(1, &m_ibo);
     glDeleteVertexArrays(1, &m_vao);
 }
 
-void GraphicsBuffer::sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index,
-                          std::vector<Vertex> &verts, std::vector<GLuint> &indices)
+void RendererBuffer::sync(GLuint posIndex, GLuint uv0Index, GLuint uv1Index,
+                          const std::vector<Vertex> &verts, const std::vector<GLuint> &indices)
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     size_t currentVboSize = verts.size() * sizeof(Vertex);

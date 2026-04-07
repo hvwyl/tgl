@@ -1,25 +1,22 @@
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
+#ifndef GRAPHICSRECORDER_H
+#define GRAPHICSRECORDER_H
 
-#include "GraphicsShader.h"
-#include "GraphicsBuffer.h"
 #include "Image.h"
 #include "Gradient.h"
 #include "Font.h"
 
+#include "GraphicsStructs.h"
+
 //
-// Graphics
+// GraphicsRecorder
 //
-class Graphics
+class GraphicsRecorder
 {
 public:
-    Graphics();
-    ~Graphics() = default;
-    inline void setResolution(size_t width, size_t height)
-    {
-        m_width = width;
-        m_height = height;
-    }
+    GraphicsRecorder();
+    ~GraphicsRecorder() = default;
+
+    void clear();
 
     void save();
     void restore();
@@ -70,59 +67,15 @@ public:
     TextMetrics measureText(const std::string &utf8string);
     TextMetrics measureText(const std::wstring &utf16string);
 
-    void beginFrame();
-    void flushFrame();
+    inline bool isEmpty() const
+    {
+        return m_currentCall->indiceCount == 0 && m_calls.size() == 1;
+    }
 
 private:
-    size_t m_width;
-    size_t m_height;
-
-    GraphicsShader m_shader;
-    GraphicsBuffer m_buffer;
-
     // Vertices & Indices
     std::vector<Vertex> m_verts;
     std::vector<GLuint> m_indices;
-
-    // Param
-    enum DrawType : uint32_t
-    {
-        DRAW_RECT = 0u,
-        DRAW_CIRCLE = 1u,
-        DRAW_FONT = 3u
-    };
-    struct CallParam
-    {
-        DrawType drawType;
-        std::shared_ptr<Texture> fontAtlas = nullptr;
-    };
-
-    // State
-    enum FillType : uint32_t
-    {
-        FILL_COLOR = 0u,
-        FILL_IMAGE = 1u,
-        FILL_LINEAR_GRADIENT = 2u,
-        FILL_RADIAL_GRADIENT = 3u,
-        FILL_CONIC_GRADIENT = 4u,
-        FILL_NONE = 255u
-    };
-    struct CallState
-    {
-        /* BlendFunc */
-        GLenum sfactor;
-        GLenum dfactor;
-        /* Uniforms */
-        float alpha;
-        Bounds scissor;
-        FillType fillType;
-        Color color;
-        uint32_t imageParams;
-        float gradientParam0[3];
-        float gradientParam1[3];
-        /* Textures */
-        std::shared_ptr<Texture> texture = nullptr;
-    };
 
     // Font
     struct FontState
@@ -141,13 +94,6 @@ private:
     std::vector<State> m_stateStack;
 
     // Calls
-    struct Call
-    {
-        CallParam param;
-        CallState state;
-        void *indiceOffset;
-        GLsizei indiceCount;
-    };
     std::vector<Call> m_calls;
     Call *m_currentCall = nullptr;
     void switchToNewActiveCall();
@@ -157,6 +103,10 @@ private:
     void rectBounds(const Bounds &posb, const Bounds &uv0b);
     void circleBounds(const Bounds &posb, const Bounds &uv0b);
     void fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
+
+    void syncFontAtlas() const;
+
+    friend class GraphicsRenderer;
 };
 
 #endif

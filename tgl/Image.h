@@ -71,7 +71,7 @@ private:
     std::shared_ptr<Texture> m_texture = nullptr;
     uint16_t m_layout;
     uint16_t m_flags;
-    friend class Graphics;
+    friend class GraphicsRecorder;
 };
 
 #endif

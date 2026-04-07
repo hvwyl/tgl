@@ -1,6 +1,7 @@
 #include "GLWindow.h"
 #include "Decoder.h"
-#include "Graphics.h"
+#include "GraphicsRecorder.h"
+#include "GraphicsRenderer.h"
 #include <cstdio>
 
 #include "fontpath.hpp"
@@ -8,15 +9,49 @@
 class TestWindow : public GLWindow
 {
 public:
-    Graphics ctx;
+    GraphicsRecorder recorder;
+    GraphicsRenderer renderer;
     Image image;
 
     TestWindow(int width, int height, const char *title)
         : GLWindow(width, height, title)
     {
-        ctx.setResolution(width, height);
         Decoder decoder("test.bmp");
         image = decoder.createImage();
+
+        recorder.clear();
+        recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 0.0f));
+        recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
+        recorder.drawRect(0, 0, 250, 50);
+        recorder.setFillColor(Color::fromRGBf(1.0f, 0.0f, 0.0f));
+        recorder.drawRect(50, 50, 1280, 720);
+        recorder.setFillImage(image);
+        recorder.drawImage(80, 80, 0.5f);
+        // 渐变测试
+        recorder.save();
+        recorder.setCompositeOperation(GraphicsRecorder::COMPOSITE_LIGHTER);
+        std::vector<Gradient::ColorStop> colorStops;
+        colorStops.push_back(Gradient::ColorStop{0.0f, Color::fromRGBf(1.0f, 0.0f, 0.0f)});
+        colorStops.push_back(Gradient::ColorStop{1.0f, Color::fromRGBf(0.0f, 0.0f, 1.0f)});
+        recorder.setFillLinearGradient(Gradient{colorStops}, 0.0f, 0.0f, 200.0f, 200.0f);
+        recorder.drawRect(0, 0, 200, 200);
+        recorder.restore();
+        // 裁剪测试 + Alpha测试
+        recorder.setScissor(150.0f, 150.0f, 100.0f, 100.0f);
+        recorder.setCompositeGlobalAlpha(0.5f);
+        recorder.setFillColor(Color::fromRGBf(0.0f, 1.0f, 0.0f));
+        recorder.drawRect(0, 0, 500.0f, 500.0f);
+        recorder.unsetScissor();
+        recorder.setCompositeGlobalAlpha(1.0f);
+        renderer.commit(recorder);
+        recorder.drawRect(900, 300, 100.0f, 100.0f);
+        recorder.setFontFamily(Font{FONT_NotoSerif_PATH});
+        recorder.setFontPixelSize(64);
+        recorder.drawText(10, 64, L"Hello, World!");
+        recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
+        recorder.setFillImage(image);
+        recorder.drawCircle(500, 500, 200, 200, image.crop(380, 46, 600, 600));
+        renderer.commit(recorder);
     }
 
     ~TestWindow() {}
@@ -29,42 +64,10 @@ protected:
         if (m_needRender)
         {
             glViewport(0, 0, getWidth(), getHeight());
-            ctx.setResolution(getWidth(), getHeight());
+            renderer.setResolution(getWidth(), getHeight());
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
-            ctx.beginFrame();
-            ctx.setFillColor(Color::fromRGBf(1.0f, 1.0f, 0.0f));
-            ctx.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
-            ctx.drawRect(0, 0, 250, 50);
-            ctx.setFillColor(Color::fromRGBf(1.0f, 0.0f, 0.0f));
-            ctx.drawRect(50, 50, 1280, 720);
-            ctx.setFillImage(image);
-            ctx.drawImage(80, 80, 0.5f);
-            // 渐变测试
-            ctx.save();
-            ctx.setCompositeOperation(Graphics::COMPOSITE_LIGHTER);
-            std::vector<Gradient::ColorStop> colorStops;
-            colorStops.push_back(Gradient::ColorStop{0.0f, Color::fromRGBf(1.0f, 0.0f, 0.0f)});
-            colorStops.push_back(Gradient::ColorStop{1.0f, Color::fromRGBf(0.0f, 0.0f, 1.0f)});
-            ctx.setFillLinearGradient(Gradient{colorStops}, 0.0f, 0.0f, 200.0f, 200.0f);
-            ctx.drawRect(0, 0, 200, 200);
-            ctx.restore();
-            // 裁剪测试 + Alpha测试
-            ctx.setScissor(150.0f, 150.0f, 100.0f, 100.0f);
-            ctx.setCompositeGlobalAlpha(0.5f);
-            ctx.setFillColor(Color::fromRGBf(0.0f, 1.0f, 0.0f));
-            ctx.drawRect(0, 0, 500.0f, 500.0f);
-            ctx.unsetScissor();
-            ctx.setCompositeGlobalAlpha(1.0f);
-            ctx.flushFrame();
-            ctx.drawRect(900, 300, 100.0f, 100.0f);
-            ctx.setFontFamily(Font{FONT_NotoSerif_PATH});
-            ctx.setFontPixelSize(64);
-            ctx.drawText(10, 64, L"Hello, World!");
-            ctx.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
-            ctx.setFillImage(image);
-            ctx.drawCircle(500, 500, 200, 200, image.crop(380, 46, 600, 600));
-            ctx.flushFrame();
+            renderer.render();
             swapBuffers();
             m_needRender = false;
         }

@@ -63,8 +63,15 @@ public:
     inline std::shared_ptr<Texture> getTexture()
     {
         return m_texture;
-    };
-    void syncTexture();
+    }
+    inline void syncTexture()
+    {
+        if (m_isDirty)
+        {
+            m_texture->update(0, 0, getWidth(), getHeight(), bufferPointer());
+            m_isDirty = false;
+        }
+    }
 
     // Getters
     inline size_t getHeight() const { return m_atlasBuffer.getHeight(); }

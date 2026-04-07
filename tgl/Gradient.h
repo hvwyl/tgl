@@ -29,7 +29,7 @@ public:
 
 private:
     std::shared_ptr<Texture> m_texture = nullptr;
-    friend class Graphics;
+    friend class GraphicsRecorder;
 };
 
 #endif

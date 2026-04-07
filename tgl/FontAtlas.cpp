@@ -74,15 +74,6 @@ GlyphValue *FontAtlas::glyph(uint32_t codepoint, size_t pixelSize)
     }
 }
 
-void FontAtlas::syncTexture()
-{
-    if (m_isDirty)
-    {
-        m_texture->update(0, 0, getWidth(), getHeight(), bufferPointer());
-        m_isDirty = false;
-    }
-}
-
 FT_GlyphSlot FontAtlas::loadCharFTGlyphSlot(uint32_t codepoint, size_t pixelSize)
 {
     if (m_pixelSize != pixelSize)

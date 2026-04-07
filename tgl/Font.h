@@ -18,7 +18,7 @@ public:
 private:
     std::shared_ptr<FontAtlas> m_atlas = nullptr;
 
-    friend class Graphics;
+    friend class GraphicsRecorder;
 };
 
 #endif

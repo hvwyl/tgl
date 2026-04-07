@@ -1,5 +1,6 @@
 #include "GLWindow.h"
-#include "Graphics.h"
+#include "GraphicsRecorder.h"
+#include "GraphicsRenderer.h"
 #include <cstdio>
 
 #include "fontpath.hpp"
@@ -7,13 +8,34 @@
 class TestWindow : public GLWindow
 {
 public:
-    Graphics ctx;
+    GraphicsRecorder recorder;
+    GraphicsRenderer renderer;
     Font simsun{FONT_NotoSerif_PATH};
 
     TestWindow(int width, int height, const char *title)
         : GLWindow(width, height, title)
     {
-        ctx.setResolution(width, height);
+        recorder.clear();
+        recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 0.0f));
+
+        recorder.setFontFamily(simsun);
+        recorder.setFontPixelSize(96);
+        auto mt = L"Hello, World!";
+        GraphicsRecorder::TextMetrics metrics = recorder.measureText(mt);
+        recorder.save();
+        recorder.setFillColor(Color::fromRGBf(0.0f, 1.0f, 1.0f));
+        recorder.drawRect(10, 290, metrics.width, 4);
+        recorder.drawRect(10, 290 - metrics.ascent, metrics.width, 4);
+        recorder.drawRect(10, 290 + metrics.descent, metrics.width, 4);
+        recorder.setFontPixelSize(32);
+        recorder.drawText(10, 400, "metrics:");
+        recorder.drawText(10, 432, std::string("width:") + std::to_string(metrics.width));
+        recorder.drawText(10, 464, std::string("ascent:") + std::to_string(metrics.ascent));
+        recorder.drawText(10, 496, std::string("descent:") + std::to_string(metrics.descent));
+        recorder.restore();
+        recorder.drawText(10, 296, mt);
+
+        renderer.commit(recorder);
     }
 
     ~TestWindow() {}
@@ -26,30 +48,10 @@ protected:
         if (m_needRender)
         {
             glViewport(0, 0, getWidth(), getHeight());
-            ctx.setResolution(getWidth(), getHeight());
+            renderer.setResolution(getWidth(), getHeight());
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
-            ctx.beginFrame();
-            ctx.setFillColor(Color::fromRGBf(1.0f, 1.0f, 0.0f));
-
-            ctx.setFontFamily(simsun);
-            ctx.setFontPixelSize(96);
-            auto mt = L"Hello, World!";
-            Graphics::TextMetrics metrics = ctx.measureText(mt);
-            ctx.save();
-            ctx.setFillColor(Color::fromRGBf(0.0f, 1.0f, 1.0f));
-            ctx.drawRect(10, 290, metrics.width, 4);
-            ctx.drawRect(10, 290 - metrics.ascent, metrics.width, 4);
-            ctx.drawRect(10, 290 + metrics.descent, metrics.width, 4);
-            ctx.setFontPixelSize(32);
-            ctx.drawText(10, 400, "metrics:");
-            ctx.drawText(10, 432, std::string("width:") + std::to_string(metrics.width));
-            ctx.drawText(10, 464, std::string("ascent:") + std::to_string(metrics.ascent));
-            ctx.drawText(10, 496, std::string("descent:") + std::to_string(metrics.descent));
-            ctx.restore();
-            ctx.drawText(10, 296, mt);
-
-            ctx.flushFrame();
+            renderer.render();
             swapBuffers();
             m_needRender = false;
         }

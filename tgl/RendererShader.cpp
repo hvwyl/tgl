@@ -1,4 +1,4 @@
-#include "GraphicsShader.h"
+#include "RendererShader.h"
 
 static constexpr const char *default_header =
 #ifdef SHADER_GL_ES
@@ -200,8 +200,8 @@ void main()
 }
 )";
 
-GraphicsShader::GraphicsShader()
-    : Shader{}
+RendererShader::RendererShader()
+    : Shader()
 {
     compile(default_header, default_vshader, default_fshader);
 
