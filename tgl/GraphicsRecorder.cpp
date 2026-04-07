@@ -446,7 +446,7 @@ void GraphicsRecorder::fontBounds(const Bounds &posb, const Bounds &uv0b, const 
     buildBounds(posb, uv0b, uv1b);
 }
 
-void GraphicsRecorder::syncFontAtlas() const
+void GraphicsRecorder::syncFontTexture() const
 {
     if (m_fontState.atlas != nullptr)
         m_fontState.atlas->syncTexture();

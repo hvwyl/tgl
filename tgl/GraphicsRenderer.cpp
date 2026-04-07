@@ -33,7 +33,7 @@ GraphicsRenderer::GraphicsRenderer()
 void GraphicsRenderer::commit(const GraphicsRecorder &recorder)
 {
     // Upload font
-    recorder.syncFontAtlas();
+    recorder.syncFontTexture();
 
     // Upload vertices
     m_buffer.sync(m_shader.locs.a_pos, m_shader.locs.a_uv0, m_shader.locs.a_uv1, recorder.m_verts, recorder.m_indices);

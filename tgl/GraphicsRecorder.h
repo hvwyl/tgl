@@ -104,7 +104,7 @@ private:
     void circleBounds(const Bounds &posb, const Bounds &uv0b);
     void fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
 
-    void syncFontAtlas() const;
+    void syncFontTexture() const;
 
     friend class GraphicsRenderer;
 };
