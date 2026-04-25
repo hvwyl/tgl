@@ -158,6 +158,23 @@ void main()
     float scissorMask = sdScissor(u_scissor.xy, u_scissor.zw);
     if (scissorMask < 0.05)
         discard;
+    
+    float geometryMask = 1.0;
+    switch(u_fragmentType.y)
+    {
+    case 0u: // Rect
+        geometryMask *= sdRect(v_uv1 - vec2(0.5));
+        break;
+    case 1u: // Circle
+        geometryMask *= sdCircle(v_uv1 - vec2(0.5));
+        break;
+    case 3u: // Font
+        geometryMask *= texture(u_fontAtlas, v_uv1).r;
+        break;
+    }
+    if (geometryMask < 0.05)
+        discard;
+
     vec4 resultColor = vec4(0.0);
 
     // Filling
@@ -181,18 +198,7 @@ void main()
     }
 
     // Drawing
-    switch(u_fragmentType.y)
-    {
-    case 0u: // Rect
-        resultColor *= sdRect(v_uv1 - vec2(0.5));
-        break;
-    case 1u: // Circle
-        resultColor *= sdCircle(v_uv1 - vec2(0.5));
-        break;
-    case 3u: // Font
-        resultColor *= texture(u_fontAtlas, v_uv1).r;
-        break;
-    }
+    resultColor *= geometryMask;
 
     // Scissoring
     resultColor *= scissorMask;

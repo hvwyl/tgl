@@ -99,7 +99,8 @@ private:
     void switchToNewActiveCall();
     void switchToNewDrawTypeCall(DrawType drawType, bool extraCheck = true);
 
-    void buildBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
+    void buildGeomBounds(const Bounds &posb, const Bounds &uv0b);
+    void buildFontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
     void rectBounds(const Bounds &posb, const Bounds &uv0b);
     void circleBounds(const Bounds &posb, const Bounds &uv0b);
     void fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
