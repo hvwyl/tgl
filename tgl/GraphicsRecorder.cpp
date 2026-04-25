@@ -425,16 +425,22 @@ void GraphicsRecorder::buildGeomBounds(const Bounds &posb, const Bounds &uv0b)
                     {Point{posb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.000f, 1.0f + 0.000f}},
                     {Point{posb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.000f, 1.0f + 0.000f}},
                     {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.000f, 0.0f - 0.000f}},
-                    {Point{expb.minx, expb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.125f, 0.0f - 0.125f}},
-                    {Point{expb.minx, expb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.125f, 1.0f + 0.125f}},
-                    {Point{expb.maxx, expb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.125f, 1.0f + 0.125f}},
-                    {Point{expb.maxx, expb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.125f, 0.0f - 0.125f}}});
+                    {Point{expb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.125f, 0.0f - 0.000f}},
+                    {Point{expb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.125f, 1.0f + 0.000f}},
+                    {Point{posb.minx, expb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.000f, 1.0f + 0.125f}},
+                    {Point{posb.maxx, expb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.000f, 1.0f + 0.125f}},
+                    {Point{expb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.125f, 1.0f + 0.000f}},
+                    {Point{expb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.125f, 0.0f - 0.000f}},
+                    {Point{posb.maxx, expb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.000f, 0.0f - 0.125f}},
+                    {Point{posb.minx, expb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.000f, 0.0f - 0.125f}}});
     m_indices.insert(m_indices.end(), {base + 0, base + 1, base + 2, base + 0, base + 2, base + 3,
-                                       base + 4, base + 1, base + 0, base + 4, base + 5, base + 1,
-                                       base + 5, base + 2, base + 1, base + 5, base + 6, base + 2,
-                                       base + 6, base + 3, base + 2, base + 6, base + 7, base + 3,
-                                       base + 7, base + 0, base + 3, base + 7, base + 4, base + 0});
-    m_currentCall->indiceCount += 30;
+                                       base + 0, base + 4, base + 5, base + 0, base + 5, base + 1,
+                                       base + 1, base + 6, base + 7, base + 1, base + 7, base + 2,
+                                       base + 2, base + 8, base + 9, base + 2, base + 9, base + 3,
+                                       base + 3, base + 10, base + 11, base + 3, base + 11, base + 0,
+                                       base + 4, base + 0, base + 11, base + 6, base + 1, base + 5,
+                                       base + 8, base + 2, base + 7, base + 10, base + 3, base + 9});
+    m_currentCall->indiceCount += 42;
 }
 
 void GraphicsRecorder::buildFontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
