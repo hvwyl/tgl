@@ -97,7 +97,7 @@ private:
     std::vector<Call> m_calls;
     Call *m_currentCall = nullptr;
     void switchToNewActiveCall();
-    void switchToNewDrawTypeCall(DrawType drawType, bool extraCheck = true);
+    void switchToNewDrawTypeCall(DrawType drawType, bool extraCheck = false);
 
     void buildGeomBounds(const Bounds &posb, const Bounds &uv0b);
     void buildFontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
