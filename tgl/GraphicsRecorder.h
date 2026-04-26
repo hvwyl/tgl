@@ -39,6 +39,7 @@ public:
     void setCompositeGlobalAlpha(float alpha);
     void setFillColor(const Color &color);
     void setFillImage(const Image &image);
+    void setFillImageClip(const Image::Clip &clip = Image::CLIP_NONE);
     void setFillLinearGradient(const Gradient &gradient, float x0, float y0, float x1, float y1);
     void setFillRadialGradient(const Gradient &gradient,
                                float x0, float y0, float r0, float x1, float y1, float r1);
@@ -48,9 +49,8 @@ public:
     void unsetScissor();
 
     void drawRect(float x, float y, float width, float height);
-    void drawRect(float x, float y, float width, float height, const Image::Clip &clip);
     void drawCircle(float x, float y, float width, float height);
-    void drawCircle(float x, float y, float width, float height, const Image::Clip &clip);
+    void drawCircle(float x, float y, float radius);
     void drawImage(float dx, float dy, float scale = 1.0f);
 
     void setFontFamily(const Font &font);
@@ -77,19 +77,20 @@ private:
     std::vector<Vertex> m_verts;
     std::vector<GLuint> m_indices;
 
-    // Font
-    struct FontState
+    // Draw State
+    struct DrawState
     {
-        std::shared_ptr<FontAtlas> atlas = nullptr;
-        size_t pixelSize = 0;
+        Image::Clip imageClip = Image::CLIP_NONE;
+        std::shared_ptr<FontAtlas> fontAtlas = nullptr;
+        size_t fontPixelSize = 0;
     };
-    FontState m_fontState;
+    DrawState m_drawState;
 
     // State Stack
     struct State
     {
         CallState callState;
-        FontState fontState;
+        DrawState drawState;
     };
     std::vector<State> m_stateStack;
 

@@ -59,6 +59,7 @@ public:
     {
         Bounds uv0b;
     };
+    inline static const Clip CLIP_NONE = Clip{Bounds{0.0f, 0.0f, 1.0f, 1.0f}};
 
     Clip crop(float sx, float sy, float sWidth, float sHeight) const;
 

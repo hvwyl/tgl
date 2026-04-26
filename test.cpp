@@ -50,7 +50,8 @@ public:
         recorder.drawText(10, 64, L"Hello, World!");
         recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
         recorder.setFillImage(image);
-        recorder.drawCircle(500, 500, 200, 200, image.crop(380, 46, 600, 600));
+        recorder.setFillImageClip(image.crop(380, 46, 600, 600));
+        recorder.drawCircle(500, 500, 200, 200);
         renderer.commit(recorder);
     }
 

@@ -57,9 +57,8 @@ void GraphicsRecorder::clear()
 
 void GraphicsRecorder::save()
 {
-    if (m_fontState.atlas != nullptr)
-        m_fontState.atlas->syncTexture();
-    m_stateStack.push_back(State{m_currentCall->state, m_fontState});
+    syncFontTexture();
+    m_stateStack.push_back(State{m_currentCall->state, m_drawState});
 }
 
 void GraphicsRecorder::restore()
@@ -69,7 +68,7 @@ void GraphicsRecorder::restore()
         switchToNewActiveCall();
         State &state = m_stateStack.back();
         m_currentCall->state = state.callState;
-        m_fontState = state.fontState;
+        m_drawState = state.drawState;
         m_stateStack.pop_back();
     }
 }
@@ -185,7 +184,13 @@ void GraphicsRecorder::setFillImage(const Image &image)
         m_currentCall->state.fillType = FILL_IMAGE;
         m_currentCall->state.imageParams = imageParams;
         m_currentCall->state.texture = image.m_texture;
+        m_drawState.imageClip = Image::CLIP_NONE;
     }
+}
+
+void GraphicsRecorder::setFillImageClip(const Image::Clip &clip)
+{
+    m_drawState.imageClip = clip;
 }
 
 void GraphicsRecorder::setFillLinearGradient(const Gradient &gradient, float x0, float y0, float x1, float y1)
@@ -257,7 +262,6 @@ void GraphicsRecorder::setFillConicGradient(const Gradient &gradient, float star
 
 void GraphicsRecorder::setScissor(float x, float y, float width, float height)
 {
-
     switchToNewActiveCall();
     m_currentCall->state.scissor.minx = x;
     m_currentCall->state.scissor.miny = y;
@@ -277,35 +281,19 @@ void GraphicsRecorder::unsetScissor()
 void GraphicsRecorder::drawRect(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
-    const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
-    rectBounds(posb, uv0b);
-}
-
-void GraphicsRecorder::drawRect(float x, float y, float width, float height, const Image::Clip &clip)
-{
-    CallState &state = m_currentCall->state;
-    if (state.fillType != FILL_IMAGE)
-        return;
-
-    const Bounds posb{x, y, x + width, y + height};
-    rectBounds(posb, clip.uv0b);
+    rectBounds(posb, m_drawState.imageClip.uv0b);
 }
 
 void GraphicsRecorder::drawCircle(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
-    const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
-    circleBounds(posb, uv0b);
+    circleBounds(posb, m_drawState.imageClip.uv0b);
 }
 
-void GraphicsRecorder::drawCircle(float x, float y, float width, float height, const Image::Clip &clip)
+void GraphicsRecorder::drawCircle(float x, float y, float radius)
 {
-    CallState &state = m_currentCall->state;
-    if (state.fillType != FILL_IMAGE)
-        return;
-
-    const Bounds posb{x, y, x + width, y + height};
-    circleBounds(posb, clip.uv0b);
+    const Bounds posb{x - radius, y - radius, x + radius, y + radius};
+    circleBounds(posb, m_drawState.imageClip.uv0b);
 }
 
 void GraphicsRecorder::drawImage(float dx, float dy, float scale)
@@ -324,18 +312,17 @@ void GraphicsRecorder::drawImage(float dx, float dy, float scale)
 
 void GraphicsRecorder::setFontFamily(const Font &font)
 {
-    if (m_fontState.atlas != nullptr)
-        m_fontState.atlas->syncTexture();
-    m_fontState.atlas = font.m_atlas;
+    syncFontTexture();
+    m_drawState.fontAtlas = font.m_atlas;
 }
 
 void GraphicsRecorder::setFontPixelSize(size_t pixelSize)
 {
-    if (m_fontState.atlas == nullptr)
+    if (m_drawState.fontAtlas == nullptr)
         return;
-    if (pixelSize > m_fontState.atlas->maxPixelSize())
-        pixelSize = m_fontState.atlas->maxPixelSize();
-    m_fontState.pixelSize = pixelSize;
+    if (pixelSize > m_drawState.fontAtlas->maxPixelSize())
+        pixelSize = m_drawState.fontAtlas->maxPixelSize();
+    m_drawState.fontPixelSize = pixelSize;
 }
 
 void GraphicsRecorder::drawText(float x, float y, const std::string &utf8string)
@@ -346,23 +333,22 @@ void GraphicsRecorder::drawText(float x, float y, const std::string &utf8string)
 
 void GraphicsRecorder::drawText(float x, float y, const std::wstring &utf16string)
 {
-    if (m_fontState.atlas == nullptr)
+    if (m_drawState.fontAtlas == nullptr)
         return;
-    FontAtlas &atlas = *(m_fontState.atlas);
+    FontAtlas &atlas = *(m_drawState.fontAtlas);
     for (wchar_t ch : utf16string)
     {
-        GlyphValue *glyph = m_fontState.atlas->glyph(ch, m_fontState.pixelSize);
+        GlyphValue *glyph = m_drawState.fontAtlas->glyph(ch, m_drawState.fontPixelSize);
         if (glyph == nullptr)
         {
             atlas.syncTexture();
             atlas.reset();
-            glyph = m_fontState.atlas->glyph(ch, m_fontState.pixelSize);
+            glyph = m_drawState.fontAtlas->glyph(ch, m_drawState.fontPixelSize);
         }
         const float baseX = x + glyph->bearingX;
         const float baseY = y - glyph->bearingY;
         const Bounds posb{baseX, baseY, baseX + glyph->width, baseY + glyph->height};
-        const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
-        fontBounds(posb, uv0b, glyph->textureUV);
+        fontBounds(posb, m_drawState.imageClip.uv0b, glyph->textureUV);
         x += glyph->advance;
     }
 }
@@ -375,15 +361,15 @@ GraphicsRecorder::TextMetrics GraphicsRecorder::measureText(const std::string &u
 
 GraphicsRecorder::TextMetrics GraphicsRecorder::measureText(const std::wstring &utf16string)
 {
-    if (m_fontState.atlas == nullptr)
+    if (m_drawState.fontAtlas == nullptr)
         return TextMetrics{};
-    FontAtlas &atlas = *(m_fontState.atlas);
+    FontAtlas &atlas = *(m_drawState.fontAtlas);
     float width = 0.0f;
     float ascent = 0.0f;
     float descent = 0.0f;
     for (wchar_t ch : utf16string)
     {
-        GlyphValue *glyph = m_fontState.atlas->metrics(ch, m_fontState.pixelSize);
+        GlyphValue *glyph = m_drawState.fontAtlas->metrics(ch, m_drawState.fontPixelSize);
         width += glyph->advance;
         ascent = std::max(ascent, static_cast<float>(glyph->bearingY));
         descent = std::max(descent, static_cast<float>(glyph->height - glyph->bearingY));
@@ -469,13 +455,13 @@ void GraphicsRecorder::circleBounds(const Bounds &posb, const Bounds &uv0b)
 
 void GraphicsRecorder::fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
 {
-    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontTexture != m_fontState.atlas->getTexture());
-    m_currentCall->param.fontTexture = m_fontState.atlas->getTexture();
+    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontTexture != m_drawState.fontAtlas->getTexture());
+    m_currentCall->param.fontTexture = m_drawState.fontAtlas->getTexture();
     buildFontBounds(posb, uv0b, uv1b);
 }
 
 void GraphicsRecorder::syncFontTexture() const
 {
-    if (m_fontState.atlas != nullptr)
-        m_fontState.atlas->syncTexture();
+    if (m_drawState.fontAtlas != nullptr)
+        m_drawState.fontAtlas->syncTexture();
 }
