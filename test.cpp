@@ -51,7 +51,7 @@ public:
         recorder.setFillColor(Color::fromRGBf(1.0f, 1.0f, 1.0f));
         recorder.setFillImage(image);
         recorder.setFillImageClip(image.crop(380, 46, 600, 600));
-        recorder.drawCircle(500, 500, 200, 200);
+        recorder.drawRect(500, 500, 200, 200);
         renderer.commit(recorder);
     }
 

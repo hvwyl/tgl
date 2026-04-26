@@ -24,8 +24,7 @@ static_assert(std::is_pod_v<Vertex> == true);
 enum DrawType : uint32_t
 {
     DRAW_RECT = 0u,
-    DRAW_CIRCLE = 1u,
-    DRAW_FONT = 3u
+    DRAW_FONT = 1u
 };
 struct CallParam
 {

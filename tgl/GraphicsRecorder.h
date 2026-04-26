@@ -49,8 +49,6 @@ public:
     void unsetScissor();
 
     void drawRect(float x, float y, float width, float height);
-    void drawCircle(float x, float y, float width, float height);
-    void drawCircle(float x, float y, float radius);
     void drawImage(float dx, float dy, float scale = 1.0f);
 
     void setFontFamily(const Font &font);
@@ -100,11 +98,8 @@ private:
     void switchToNewActiveCall();
     void switchToNewDrawTypeCall(DrawType drawType, bool extraCheck = false);
 
-    void buildGeomBounds(const Bounds &posb, const Bounds &uv0b);
+    void buildRectBounds(const Bounds &posb, const Bounds &uv0b);
     void buildFontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
-    void rectBounds(const Bounds &posb, const Bounds &uv0b);
-    void circleBounds(const Bounds &posb, const Bounds &uv0b);
-    void fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b);
 
     void syncFontTexture() const;
 

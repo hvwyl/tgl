@@ -122,40 +122,19 @@ vec4 conicGradientColor(vec2 pos)
     return texture(u_texture, vec2(angle / radians(360.0), 0.0));
 }
 
-////////////////////////////////
-
-float sdfAA(float sdf)
-{
-    return 1.0 - smoothstep(-1.0, 1.0, sdf / max(fwidth(sdf), 0.00001));
-}
-
-float sdRect(vec2 uv1)
-{
-    vec2 dist = abs(uv1) - vec2(0.5);
-    float sdf = length(max(dist, 0.0)) + min(max(dist.x, dist.y), 0.0);
-    return sdfAA(sdf);
-}
-
-float sdCircle(vec2 uv1)
-{
-    float sdf = length(uv1) - 0.5;
-    return sdfAA(sdf);
-}
-
-float sdScissor(vec2 pmin, vec2 pmax) {
+float scissor(vec2 pmin, vec2 pmax) {
     vec2 dist = vec2(
         min(v_pos.x - pmin.x, pmax.x - v_pos.x),
         min(v_pos.y - pmin.y, pmax.y - v_pos.y)
     );
-    float sdf = -min(dist.x, dist.y);
-    return sdfAA(sdf);
+    float d = min(dist.x, dist.y);
+    float w = fwidth(d);
+    return 1.0 - smoothstep(-w, w, -d);
 }
-
-////////////////////////////////
 
 void main()
 {
-    float scissorMask = sdScissor(u_scissor.xy, u_scissor.zw);
+    float scissorMask = scissor(u_scissor.xy, u_scissor.zw);
     if (scissorMask < 0.05)
         discard;
     
@@ -163,12 +142,9 @@ void main()
     switch(u_fragmentType.y)
     {
     case 0u: // Rect
-        geometryMask *= sdRect(v_uv1 - vec2(0.5));
+        geometryMask *= 1.0 - length(v_uv1);
         break;
-    case 1u: // Circle
-        geometryMask *= sdCircle(v_uv1 - vec2(0.5));
-        break;
-    case 3u: // Font
+    case 1u: // Font
         geometryMask *= texture(u_fontAtlas, v_uv1).r;
         break;
     }

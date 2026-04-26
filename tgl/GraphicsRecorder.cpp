@@ -281,19 +281,7 @@ void GraphicsRecorder::unsetScissor()
 void GraphicsRecorder::drawRect(float x, float y, float width, float height)
 {
     const Bounds posb{x, y, x + width, y + height};
-    rectBounds(posb, m_drawState.imageClip.uv0b);
-}
-
-void GraphicsRecorder::drawCircle(float x, float y, float width, float height)
-{
-    const Bounds posb{x, y, x + width, y + height};
-    circleBounds(posb, m_drawState.imageClip.uv0b);
-}
-
-void GraphicsRecorder::drawCircle(float x, float y, float radius)
-{
-    const Bounds posb{x - radius, y - radius, x + radius, y + radius};
-    circleBounds(posb, m_drawState.imageClip.uv0b);
+    buildRectBounds(posb, m_drawState.imageClip.uv0b);
 }
 
 void GraphicsRecorder::drawImage(float dx, float dy, float scale)
@@ -307,7 +295,7 @@ void GraphicsRecorder::drawImage(float dx, float dy, float scale)
     float dHeight = state.texture->getHeight() * scale;
     const Bounds posb{dx, dy, dx + dWidth, dy + dHeight};
     const Bounds uv0b{0.0f, 0.0f, 1.0f, 1.0f};
-    rectBounds(posb, uv0b);
+    buildRectBounds(posb, uv0b);
 }
 
 void GraphicsRecorder::setFontFamily(const Font &font)
@@ -348,7 +336,7 @@ void GraphicsRecorder::drawText(float x, float y, const std::wstring &utf16strin
         const float baseX = x + glyph->bearingX;
         const float baseY = y - glyph->bearingY;
         const Bounds posb{baseX, baseY, baseX + glyph->width, baseY + glyph->height};
-        fontBounds(posb, m_drawState.imageClip.uv0b, glyph->textureUV);
+        buildFontBounds(posb, m_drawState.imageClip.uv0b, glyph->textureUV);
         x += glyph->advance;
     }
 }
@@ -399,26 +387,28 @@ void GraphicsRecorder::switchToNewDrawTypeCall(DrawType drawType, bool extraChec
     }
 }
 
-void GraphicsRecorder::buildGeomBounds(const Bounds &posb, const Bounds &uv0b)
+void GraphicsRecorder::buildRectBounds(const Bounds &posb, const Bounds &uv0b)
 {
-    const float exp_x = (posb.maxx - posb.minx) * 0.125f;
-    const float exp_y = (posb.maxy - posb.miny) * 0.125f;
+    switchToNewDrawTypeCall(DRAW_RECT);
+
+    const float exp_x = 1.0f;
+    const float exp_y = 1.0f;
     const Bounds expb{posb.minx - exp_x, posb.miny - exp_y, posb.maxx + exp_x, posb.maxy + exp_y};
 
     const size_t base = m_verts.size();
     m_verts.insert(m_verts.end(),
-                   {{Point{posb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.000f, 0.0f - 0.000f}},
-                    {Point{posb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.000f, 1.0f + 0.000f}},
-                    {Point{posb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.000f, 1.0f + 0.000f}},
-                    {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.000f, 0.0f - 0.000f}},
-                    {Point{expb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.125f, 0.0f - 0.000f}},
-                    {Point{expb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.125f, 1.0f + 0.000f}},
-                    {Point{posb.minx, expb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f - 0.000f, 1.0f + 0.125f}},
-                    {Point{posb.maxx, expb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.000f, 1.0f + 0.125f}},
-                    {Point{expb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f + 0.125f, 1.0f + 0.000f}},
-                    {Point{expb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.125f, 0.0f - 0.000f}},
-                    {Point{posb.maxx, expb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f + 0.000f, 0.0f - 0.125f}},
-                    {Point{posb.minx, expb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f - 0.000f, 0.0f - 0.125f}}});
+                   {{Point{posb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f, 0.0f}},
+                    {Point{posb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f, 0.0f}},
+                    {Point{posb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{0.0f, 0.0f}},
+                    {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{0.0f, 0.0f}},
+                    {Point{expb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{1.0f, 0.0f}},
+                    {Point{expb.minx, posb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{1.0f, 0.0f}},
+                    {Point{posb.minx, expb.maxy}, Point{uv0b.minx, uv0b.maxy}, Point{0.0f, 1.0f}},
+                    {Point{posb.maxx, expb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{0.0f, 1.0f}},
+                    {Point{expb.maxx, posb.maxy}, Point{uv0b.maxx, uv0b.maxy}, Point{1.0f, 0.0f}},
+                    {Point{expb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{1.0f, 0.0f}},
+                    {Point{posb.maxx, expb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{0.0f, 1.0f}},
+                    {Point{posb.minx, expb.miny}, Point{uv0b.minx, uv0b.miny}, Point{0.0f, 1.0f}}});
     m_indices.insert(m_indices.end(), {base + 0, base + 1, base + 2, base + 0, base + 2, base + 3,
                                        base + 0, base + 4, base + 5, base + 0, base + 5, base + 1,
                                        base + 1, base + 6, base + 7, base + 1, base + 7, base + 2,
@@ -431,6 +421,9 @@ void GraphicsRecorder::buildGeomBounds(const Bounds &posb, const Bounds &uv0b)
 
 void GraphicsRecorder::buildFontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
 {
+    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontTexture != m_drawState.fontAtlas->getTexture());
+    m_currentCall->param.fontTexture = m_drawState.fontAtlas->getTexture();
+
     const size_t base = m_verts.size();
     m_verts.insert(m_verts.end(),
                    {{Point{posb.minx, posb.miny}, Point{uv0b.minx, uv0b.miny}, Point{uv1b.minx, uv1b.miny}},
@@ -439,25 +432,6 @@ void GraphicsRecorder::buildFontBounds(const Bounds &posb, const Bounds &uv0b, c
                     {Point{posb.maxx, posb.miny}, Point{uv0b.maxx, uv0b.miny}, Point{uv1b.maxx, uv1b.miny}}});
     m_indices.insert(m_indices.end(), {base + 0, base + 1, base + 2, base + 0, base + 2, base + 3});
     m_currentCall->indiceCount += 6;
-}
-
-void GraphicsRecorder::rectBounds(const Bounds &posb, const Bounds &uv0b)
-{
-    switchToNewDrawTypeCall(DRAW_RECT);
-    buildGeomBounds(posb, uv0b);
-}
-
-void GraphicsRecorder::circleBounds(const Bounds &posb, const Bounds &uv0b)
-{
-    switchToNewDrawTypeCall(DRAW_CIRCLE);
-    buildGeomBounds(posb, uv0b);
-}
-
-void GraphicsRecorder::fontBounds(const Bounds &posb, const Bounds &uv0b, const Bounds &uv1b)
-{
-    switchToNewDrawTypeCall(DRAW_FONT, m_currentCall->param.fontTexture != m_drawState.fontAtlas->getTexture());
-    m_currentCall->param.fontTexture = m_drawState.fontAtlas->getTexture();
-    buildFontBounds(posb, uv0b, uv1b);
 }
 
 void GraphicsRecorder::syncFontTexture() const
